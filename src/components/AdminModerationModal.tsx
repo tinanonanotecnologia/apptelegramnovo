@@ -16,6 +16,7 @@ import {
   LogOut,
   LoaderCircle,
   CircleAlert,
+  Trash2,
 } from "lucide-react";
 
 interface AdminModerationModalProps {
@@ -51,6 +52,7 @@ export function AdminModerationModal({
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [deletingLinkId, setDeletingLinkId] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -188,11 +190,55 @@ export function AdminModerationModal({
       }
 
       if (showToast) showToast("Link atualizado com sucesso.");
-      setLinks((previous) => previous.map((link) => (link.id === id ? { ...link, ...updates } : link)));
+      const updatedLink = data.data as TelegramLinkItem | undefined;
+      setLinks((previous) => {
+        // Keep the current status filter accurate after moderation. A link
+        // moved to another status should leave a filtered list immediately.
+        if (statusFilter !== "all" && updatedLink?.status !== statusFilter) {
+          return previous.filter((link) => link.id !== id);
+        }
+        return previous.map((link) =>
+          link.id === id ? { ...link, ...updates, ...(updatedLink || {}) } : link
+        );
+      });
       onRefreshData();
     } catch (error) {
       console.error("Error updating moderation link:", error);
       if (showToast) showToast("Falha de conexão ao atualizar o link.");
+    }
+  };
+
+  const handleDeleteLink = async (link: TelegramLinkItem) => {
+    const confirmed = window.confirm(
+      `Excluir "${link.title}" permanentemente? Esta ação também remove avaliações e denúncias vinculadas.`
+    );
+    if (!confirmed) return;
+
+    setDeletingLinkId(link.id);
+    try {
+      const response = await fetch(`/api/links/${link.id}`, {
+        method: "DELETE",
+        cache: "no-store",
+      });
+      const data = await response.json().catch(() => null);
+
+      if (response.status === 401) {
+        setAuthStatus("login");
+        setLoginError("Sua sessão expirou. Entre novamente para continuar.");
+        return;
+      }
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "Não foi possível excluir o link.");
+      }
+
+      setLinks((previous) => previous.filter((item) => item.id !== link.id));
+      onRefreshData();
+      if (showToast) showToast("Link excluído permanentemente.");
+    } catch (error) {
+      console.error("Error deleting moderation link:", error);
+      if (showToast) showToast(error instanceof Error ? error.message : "Falha ao excluir o link.");
+    } finally {
+      setDeletingLinkId(null);
     }
   };
 
@@ -521,6 +567,19 @@ export function AdminModerationModal({
                         Recusar
                       </button>
                     )}
+                    <button
+                      onClick={() => void handleDeleteLink(link)}
+                      disabled={deletingLinkId === link.id}
+                      className="px-2.5 py-1 rounded-xl bg-rose-950/70 text-rose-200 text-[11px] font-bold hover:bg-rose-900/80 disabled:cursor-wait disabled:opacity-50 flex items-center gap-1"
+                      title="Excluir permanentemente"
+                    >
+                      {deletingLinkId === link.id ? (
+                        <LoaderCircle className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3 h-3" />
+                      )}
+                      Excluir
+                    </button>
                   </div>
                 </div>
               ))

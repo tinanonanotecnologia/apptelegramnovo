@@ -72,7 +72,7 @@ export default function Home() {
   // Fetch Categories
   const fetchCategories = useCallback(async () => {
     try {
-      const res = await fetch("/api/categories");
+      const res = await fetch("/api/categories", { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
         setCategories(data.data || []);
@@ -85,7 +85,7 @@ export default function Home() {
   // Fetch Collections
   const fetchCollections = useCallback(async () => {
     try {
-      const res = await fetch("/api/collections");
+      const res = await fetch("/api/collections", { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
         setCollections(data.data || []);
@@ -98,7 +98,7 @@ export default function Home() {
   // Fetch Stats
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch("/api/stats");
+      const res = await fetch("/api/stats", { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
         setStats(data.stats);
@@ -126,10 +126,13 @@ export default function Home() {
       params.set("limit", "50");
       params.set("offset", String(offset));
 
-      const res = await fetch(`/api/links?${params.toString()}`);
+      const res = await fetch(`/api/links?${params.toString()}`, { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
-        setLinks((previous) => (append ? [...previous, ...(data.data || [])] : data.data || []));
+        setLinks((previous) => {
+          const nextLinks = data.data || [];
+          return append ? [...previous, ...nextLinks] : nextLinks;
+        });
         setTotalCount(data.pagination?.total || data.data.length);
         setHasMore(Boolean(data.pagination?.hasMore));
       }
@@ -185,7 +188,15 @@ export default function Home() {
   };
 
   const handleLinkUpdated = (updated: TelegramLinkItem) => {
-    setLinks((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+    setLinks((prev) => {
+      // A moderation update can be delivered to an open catalog card/detail
+      // modal. Remove anything that is no longer public immediately instead of
+      // leaving the rejected link visible until the next full reload.
+      if (updated.status !== "approved") {
+        return prev.filter((link) => link.id !== updated.id);
+      }
+      return prev.map((link) => (link.id === updated.id ? updated : link));
+    });
   };
 
   const handleLinkAdded = (newLink: TelegramLinkItem) => {
@@ -449,9 +460,15 @@ export default function Home() {
         <AdminModerationModal
           onClose={() => setIsAdminOpen(false)}
           onRefreshData={() => {
-            fetchLinks();
-            fetchCategories();
-            fetchStats();
+            // Refresh every public surface after moderation. Collections keep
+            // their own in-memory list, so refreshing only the catalog would
+            // leave a rejected link visible in the collections tab.
+            void Promise.all([
+              fetchLinks(),
+              fetchCollections(),
+              fetchCategories(),
+              fetchStats(),
+            ]);
           }}
           showToast={showToast}
         />

@@ -3,6 +3,8 @@ import { db } from "@/db";
 import { telegramLinks, categories } from "@/db/schema";
 import { sql, eq, and } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const totalLinksRes = await db
@@ -29,16 +31,19 @@ export async function GET() {
       .select({ count: sql<number>`count(*)` })
       .from(categories);
 
-    return NextResponse.json({
-      success: true,
-      stats: {
-        totalLinks: Number(totalLinksRes[0]?.count || 0),
-        totalClicks: Number(totalClicksRes[0]?.sum || 0),
-        totalMembers: Number(totalMembersRes[0]?.sum || 0),
-        totalVerified: Number(totalVerifiedRes[0]?.count || 0),
-        totalCategories: Number(totalCatsRes[0]?.count || 0),
+    return NextResponse.json(
+      {
+        success: true,
+        stats: {
+          totalLinks: Number(totalLinksRes[0]?.count || 0),
+          totalClicks: Number(totalClicksRes[0]?.sum || 0),
+          totalMembers: Number(totalMembersRes[0]?.sum || 0),
+          totalVerified: Number(totalVerifiedRes[0]?.count || 0),
+          totalCategories: Number(totalCatsRes[0]?.count || 0),
+        },
       },
-    });
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   } catch (error) {
     console.error("Error fetching stats:", error);
     return NextResponse.json(

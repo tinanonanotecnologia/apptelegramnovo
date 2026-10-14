@@ -4,6 +4,8 @@ import { curatedCollections, telegramLinks } from "@/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import { seedDatabase } from "@/db/seed";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     let collections = await db
@@ -55,10 +57,13 @@ export async function GET() {
         .filter(Boolean),
     }));
 
-    return NextResponse.json({
-      success: true,
-      data: populated,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: populated,
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   } catch (error) {
     console.error("Error fetching collections:", error);
     return NextResponse.json(

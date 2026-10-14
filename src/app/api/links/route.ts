@@ -14,6 +14,10 @@ import {
   parseBoundedInteger,
 } from "@/app/api/_lib/validation";
 
+// The public catalog changes immediately after moderation. Keep the response
+// dynamic so a CDN or framework cache cannot serve a rejected link again.
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -159,16 +163,19 @@ export async function GET(request: NextRequest) {
 
     const total = Number(totalCountRes[0]?.count || 0);
 
-    return NextResponse.json({
-      success: true,
-      data: linksList,
-      pagination: {
-        total,
-        limit,
-        offset,
-        hasMore: offset + linksList.length < total,
+    return NextResponse.json(
+      {
+        success: true,
+        data: linksList,
+        pagination: {
+          total,
+          limit,
+          offset,
+          hasMore: offset + linksList.length < total,
+        },
       },
-    });
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   } catch (error) {
     console.error("Error fetching links:", error);
     return NextResponse.json(

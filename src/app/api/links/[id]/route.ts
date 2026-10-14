@@ -11,6 +11,8 @@ import {
   parseBoundedInteger,
 } from "@/app/api/_lib/validation";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -76,15 +78,18 @@ export async function GET(
       )
       .limit(4);
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...link,
-        category: cat || null,
-        reviews: linkReviews,
-        related: relatedLinks,
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          ...link,
+          category: cat || null,
+          reviews: linkReviews,
+          related: relatedLinks,
+        },
       },
-    });
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   } catch (error) {
     console.error("Error fetching link details:", error);
     return NextResponse.json(
@@ -184,6 +189,56 @@ export async function PATCH(
     return NextResponse.json(
       { success: false, error: "Falha ao atualizar link" },
       { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json(
+      { success: false, error: "Autenticação necessária." },
+      { status: 401, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
+  try {
+    const { id } = await params;
+    const linkId = parseBoundedInteger(id, { min: 1, max: Number.MAX_SAFE_INTEGER });
+
+    if (linkId === null) {
+      return NextResponse.json({ success: false, error: "ID inválido" }, { status: 400 });
+    }
+
+    // Reviews and reports reference links with ON DELETE CASCADE in the
+    // schema, so removing the link also removes its dependent moderation data.
+    const [deleted] = await db
+      .delete(telegramLinks)
+      .where(eq(telegramLinks.id, linkId))
+      .returning({ id: telegramLinks.id });
+
+    if (!deleted) {
+      return NextResponse.json(
+        { success: false, error: "Link não encontrado" },
+        { status: 404, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Link excluído permanentemente.",
+        data: deleted,
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (error) {
+    console.error("Error deleting link:", error);
+    return NextResponse.json(
+      { success: false, error: "Falha ao excluir link" },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 }

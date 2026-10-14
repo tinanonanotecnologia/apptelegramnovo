@@ -49,6 +49,8 @@ export function CategoryManagement({ showToast }: { showToast?: (message: string
   }, []);
 
   useEffect(() => {
+    // Load the server-backed list once when the management panel opens.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadCategories();
   }, [loadCategories]);
 
