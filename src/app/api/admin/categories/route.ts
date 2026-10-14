@@ -7,6 +7,41 @@ import { asOptionalTrimmedString, asTrimmedString, parseBoundedInteger } from "@
 
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+function databaseErrorCode(error: unknown) {
+  let current: unknown = error;
+  for (let index = 0; index < 5 && current; index += 1) {
+    if (typeof current === "object" && "code" in current && typeof current.code === "string") {
+      return current.code;
+    }
+    if (typeof current === "object" && "cause" in current) {
+      current = current.cause;
+    } else {
+      break;
+    }
+  }
+  return "";
+}
+
+function databaseFailureResponse(error: unknown) {
+  const code = databaseErrorCode(error);
+  if (code === "42P01") {
+    return NextResponse.json(
+      { success: false, error: "A tabela de categorias ainda não existe no Neon. Execute pnpm run db:push com a DATABASE_URL do Neon." },
+      { status: 503 }
+    );
+  }
+  if (code === "42P07") {
+    return NextResponse.json(
+      { success: false, error: "O schema do banco está inconsistente. Execute pnpm run db:push novamente." },
+      { status: 503 }
+    );
+  }
+  return NextResponse.json(
+    { success: false, error: "O banco não respondeu. Confirme DATABASE_URL, SSL e os logs da Vercel." },
+    { status: 503 }
+  );
+}
+
 function unauthorized() {
   return NextResponse.json(
     { success: false, error: "Autenticação necessária." },
@@ -74,7 +109,7 @@ export async function GET() {
     );
   } catch (error) {
     console.error("Error fetching admin categories:", error);
-    return NextResponse.json({ success: false, error: "Falha ao carregar categorias." }, { status: 500 });
+    return databaseFailureResponse(error);
   }
 }
 
@@ -101,13 +136,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: created, message: "Categoria criada." }, { status: 201 });
   } catch (error) {
     console.error("Error creating category:", error);
-    const errorCode = error && typeof error === "object" && "code" in error ? String(error.code) : "";
+    const errorCode = databaseErrorCode(error);
     if (errorCode === "42P01") {
       return NextResponse.json({ success: false, error: "A tabela de categorias ainda não existe. Execute pnpm run db:push usando a DATABASE_URL do Neon." }, { status: 503 });
     }
     if (errorCode === "23505") {
       return NextResponse.json({ success: false, error: "O ID ou slug informado já existe. Escolha outro slug." }, { status: 409 });
     }
-    return NextResponse.json({ success: false, error: "Não foi possível criar a categoria. Verifique os logs do banco." }, { status: 500 });
+    return databaseFailureResponse(error);
   }
 }
