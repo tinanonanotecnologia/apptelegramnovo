@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { TelegramLinkItem } from "@/lib/types";
+import { CategoryManagement } from "./CategoryManagement";
 import {
   X,
   ShieldCheck,
@@ -45,7 +46,7 @@ export function AdminModerationModal({
   const [showPassword, setShowPassword] = useState(false);
   const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [loginError, setLoginError] = useState("");
-  const [activeTab, setActiveTab] = useState<"links" | "reports">("links");
+  const [activeTab, setActiveTab] = useState<"links" | "reports" | "categories">("links");
   const [links, setLinks] = useState<TelegramLinkItem[]>([]);
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -408,6 +409,16 @@ export function AdminModerationModal({
             >
               Denúncias ({reports.length})
             </button>
+            <button
+              onClick={() => setActiveTab("categories")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === "categories"
+                  ? "bg-cyan-500/25 text-cyan-200 border border-cyan-400/30"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Categorias
+            </button>
           </div>
 
           {activeTab === "links" && (
@@ -437,6 +448,8 @@ export function AdminModerationModal({
         <div className="flex-1 overflow-y-auto py-3 space-y-3 pr-1">
           {loading ? (
             <div className="py-12 text-center text-xs text-slate-400">Carregando dados...</div>
+          ) : activeTab === "categories" ? (
+            <CategoryManagement showToast={showToast} />
           ) : activeTab === "links" ? (
             links.length === 0 ? (
               <div className="py-12 text-center text-xs text-slate-400">Nenhum link encontrado.</div>
