@@ -3,7 +3,19 @@ import { categories, telegramLinks, curatedCollections } from "@/db/schema";
 import { INITIAL_CATEGORIES, INITIAL_LINKS, INITIAL_COLLECTIONS } from "./seed-data";
 import { eq, sql } from "drizzle-orm";
 
+let seedInFlight: Promise<{ success: boolean; error?: string }> | null = null;
+
 export async function seedDatabase() {
+  if (seedInFlight) return seedInFlight;
+  seedInFlight = seedDatabaseInternal();
+  try {
+    return await seedInFlight;
+  } finally {
+    seedInFlight = null;
+  }
+}
+
+async function seedDatabaseInternal() {
   try {
     // 1. Seed categories
     const existingCats = await db.select().from(categories);

@@ -4,6 +4,8 @@ import { categories, telegramLinks } from "@/db/schema";
 import { eq, sql, count } from "drizzle-orm";
 import { seedDatabase } from "@/db/seed";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     let allCategories = await db.select().from(categories).orderBy(categories.order);
@@ -30,10 +32,13 @@ export async function GET() {
       linksCount: countsMap.get(cat.id) || 0,
     }));
 
-    return NextResponse.json({
-      success: true,
-      data: enrichedCategories,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: enrichedCategories,
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   } catch (error) {
     console.error("Error fetching categories:", error);
     return NextResponse.json(
