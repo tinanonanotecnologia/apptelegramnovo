@@ -1,0 +1,550 @@
+"use client";
+
+import React, { useCallback, useEffect, useState } from "react";
+import { TelegramLinkItem } from "@/lib/types";
+import {
+  X,
+  ShieldCheck,
+  Flame,
+  CheckCircle2,
+  RefreshCw,
+  LockKeyhole,
+  UserRound,
+  Eye,
+  EyeOff,
+  LogOut,
+  LoaderCircle,
+  CircleAlert,
+} from "lucide-react";
+
+interface AdminModerationModalProps {
+  onClose: () => void;
+  onRefreshData: () => void;
+  showToast?: (msg: string) => void;
+}
+
+type AuthStatus = "checking" | "unconfigured" | "login" | "authenticated";
+
+type ReportItem = {
+  id: number;
+  linkId: number;
+  reason: string;
+  details: string | null;
+  status: string;
+  createdAt: string;
+};
+
+export function AdminModerationModal({
+  onClose,
+  onRefreshData,
+  showToast,
+}: AdminModerationModalProps) {
+  const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginSubmitting, setLoginSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const [activeTab, setActiveTab] = useState<"links" | "reports">("links");
+  const [links, setLinks] = useState<TelegramLinkItem[]>([]);
+  const [reports, setReports] = useState<ReportItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/admin/session", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Falha ao verificar a sessão.");
+        return data;
+      })
+      .then((data) => {
+        if (cancelled) return;
+        if (!data.configured) {
+          setAuthStatus("unconfigured");
+          setLoading(false);
+          return;
+        }
+        setAuthStatus(data.authenticated ? "authenticated" : "login");
+        setLoading(!data.authenticated);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAuthStatus("login");
+        setLoginError("Não foi possível verificar a sessão. Tente novamente.");
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const loadData = useCallback(async () => {
+    if (authStatus !== "authenticated") return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/links?status=${encodeURIComponent(statusFilter)}`, {
+        cache: "no-store",
+      });
+      const data = await response.json();
+
+      if (response.status === 401) {
+        setAuthStatus("login");
+        setLoginError("Sua sessão expirou. Entre novamente para continuar.");
+        return;
+      }
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Não foi possível carregar o painel.");
+      }
+
+      setLinks(data.data.links || []);
+      setReports(data.data.reports || []);
+    } catch (error) {
+      console.error("Error loading moderation data:", error);
+      if (showToast) showToast("Não foi possível carregar os dados de moderação.");
+    } finally {
+      setLoading(false);
+    }
+  }, [authStatus, statusFilter, showToast]);
+
+  useEffect(() => {
+    if (authStatus === "authenticated") {
+      // Loading the moderation data updates several state fields after the session check.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void loadData();
+    }
+  }, [authStatus, loadData]);
+
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoginError("");
+    setLoginSubmitting(true);
+
+    try {
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ username: username.trim(), password }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        setLoginError(data.error || "Não foi possível entrar. Confira suas credenciais.");
+        return;
+      }
+
+      setPassword("");
+      setLoginError("");
+      setAuthStatus("authenticated");
+      if (showToast) showToast("Acesso ao painel de moderação autorizado.");
+    } catch (error) {
+      console.error("Admin login failed:", error);
+      setLoginError("Falha de conexão. Tente novamente.");
+    } finally {
+      setLoginSubmitting(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/admin/logout", { method: "POST", cache: "no-store" });
+    } finally {
+      setAuthStatus("login");
+      setLinks([]);
+      setReports([]);
+      setPassword("");
+      setLoginError("");
+      setLoading(false);
+      if (showToast) showToast("Você saiu do painel de moderação.");
+    }
+  };
+
+  const handleUpdateLink = async (id: number, updates: Partial<TelegramLinkItem>) => {
+    try {
+      const response = await fetch(`/api/links/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify(updates),
+      });
+      const data = await response.json();
+
+      if (response.status === 401) {
+        setAuthStatus("login");
+        setLoginError("Sua sessão expirou. Entre novamente para continuar.");
+        return;
+      }
+
+      if (!response.ok || !data.success) {
+        if (showToast) showToast(data.error || "Não foi possível atualizar o link.");
+        return;
+      }
+
+      if (showToast) showToast("Link atualizado com sucesso.");
+      setLinks((previous) => previous.map((link) => (link.id === id ? { ...link, ...updates } : link)));
+      onRefreshData();
+    } catch (error) {
+      console.error("Error updating moderation link:", error);
+      if (showToast) showToast("Falha de conexão ao atualizar o link.");
+    }
+  };
+
+  const handleUpdateReport = async (id: number, status: "pending" | "resolved") => {
+    try {
+      const response = await fetch(`/api/admin/reports/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ status }),
+      });
+      const data = await response.json();
+
+      if (response.status === 401) {
+        setAuthStatus("login");
+        setLoginError("Sua sessão expirou. Entre novamente para continuar.");
+        return;
+      }
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Não foi possível atualizar a denúncia.");
+      }
+
+      setReports((previous) =>
+        previous.map((report) => (report.id === id ? { ...report, status } : report))
+      );
+      if (showToast) showToast(status === "resolved" ? "Denúncia marcada como resolvida." : "Denúncia reaberta.");
+    } catch (error) {
+      console.error("Error updating report:", error);
+      if (showToast) showToast("Não foi possível atualizar a denúncia.");
+    }
+  };
+
+  if (authStatus !== "authenticated") {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+        <div className="glass-modal w-full max-w-md rounded-3xl p-6 sm:p-8 relative border border-white/20 shadow-2xl">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            aria-label="Fechar painel de moderação"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          <div className="text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center shadow-[0_0_25px_rgba(16,185,129,0.18)]">
+              {authStatus === "checking" ? (
+                <LoaderCircle className="w-7 h-7 animate-spin" />
+              ) : authStatus === "unconfigured" ? (
+                <LockKeyhole className="w-7 h-7" />
+              ) : (
+                <ShieldCheck className="w-7 h-7" />
+              )}
+            </div>
+            <h2 className="mt-4 text-xl font-bold text-white">Painel de Moderação</h2>
+            <p className="mt-1 text-xs text-slate-300">
+              {authStatus === "checking"
+                ? "Verificando sua sessão segura..."
+                : authStatus === "unconfigured"
+                  ? "Configure as credenciais do administrador no servidor para liberar o painel."
+                  : "Entre com sua conta de administrador para continuar."}
+            </p>
+          </div>
+
+          {authStatus === "checking" ? (
+            <div className="py-8 text-center text-xs text-slate-400">Validando acesso...</div>
+          ) : authStatus === "unconfigured" ? (
+            <div className="mt-5 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-left">
+              <div className="flex items-start gap-2.5">
+                <CircleAlert className="w-4 h-4 mt-0.5 shrink-0 text-amber-300" />
+                <div className="text-xs text-amber-100/90 leading-relaxed">
+                  <p className="font-semibold">Falta configurar o acesso no ambiente do servidor.</p>
+                  <p className="mt-1 text-amber-100/70">
+                    Defina <code className="text-amber-200">ADMIN_USERNAME</code>,{" "}
+                    <code className="text-amber-200">ADMIN_PASSWORD</code> e{" "}
+                    <code className="text-amber-200">ADMIN_SESSION_SECRET</code>. A chave de sessão deve ter pelo menos 32 caracteres.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleLogin} className="mt-6 space-y-4">
+              {loginError && (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-rose-400/25 bg-rose-500/10 px-3.5 py-3 text-xs text-rose-200"
+                >
+                  {loginError}
+                </div>
+              )}
+
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-slate-300">Usuário</span>
+                <span className="relative block">
+                  <UserRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    name="username"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    required
+                    maxLength={100}
+                    value={username}
+                    onChange={(event) => setUsername(event.target.value)}
+                    placeholder="Seu usuário de administrador"
+                    className="glass-input w-full rounded-xl py-3 pl-10 pr-3 text-sm placeholder:text-slate-500"
+                    disabled={loginSubmitting}
+                  />
+                </span>
+              </label>
+
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-slate-300">Senha</span>
+                <span className="relative block">
+                  <LockKeyhole className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    autoComplete="current-password"
+                    required
+                    maxLength={256}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Sua senha"
+                    className="glass-input w-full rounded-xl py-3 pl-10 pr-11 text-sm placeholder:text-slate-500"
+                    disabled={loginSubmitting}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-white/5 hover:text-white"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={loginSubmitting || !username.trim() || !password}
+                className="glass-button flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loginSubmitting ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ShieldCheck className="h-4 w-4 text-cyan-300" />
+                )}
+                <span>{loginSubmitting ? "Verificando..." : "Entrar na moderação"}</span>
+              </button>
+              <p className="text-center text-[11px] text-slate-500">
+                A sessão é protegida e expira automaticamente após 8 horas.
+              </p>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xl overflow-y-auto">
+      <div className="glass-modal max-w-4xl w-full rounded-3xl p-5 sm:p-7 relative border border-white/20 my-auto shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between pb-4 border-b border-white/10 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">Painel de Moderação</h3>
+              <p className="text-xs text-slate-300">Gerencie canais, aprove cadastros e analise denúncias.</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleLogout}
+              className="px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5"
+              title="Sair da conta de moderação"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Sair</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Fechar painel de moderação"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-2 py-3 border-b border-white/10 shrink-0">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActiveTab("links")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === "links"
+                  ? "bg-cyan-500/25 text-cyan-200 border border-cyan-400/30"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Links ({links.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("reports")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === "reports"
+                  ? "bg-amber-500/25 text-amber-200 border border-amber-400/30"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Denúncias ({reports.length})
+            </button>
+          </div>
+
+          {activeTab === "links" && (
+            <div className="flex items-center gap-2">
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                className="p-1.5 rounded-xl glass-input text-xs text-white bg-slate-900"
+                aria-label="Filtrar links por status"
+              >
+                <option value="all" className="bg-slate-900">Todos os Status</option>
+                <option value="approved" className="bg-slate-900">Aprovados</option>
+                <option value="pending" className="bg-slate-900">Pendentes</option>
+                <option value="rejected" className="bg-slate-900">Rejeitados</option>
+              </select>
+              <button
+                onClick={() => void loadData()}
+                className="p-2 rounded-xl glass-pill text-slate-300 hover:text-white"
+                title="Atualizar"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-3 space-y-3 pr-1">
+          {loading ? (
+            <div className="py-12 text-center text-xs text-slate-400">Carregando dados...</div>
+          ) : activeTab === "links" ? (
+            links.length === 0 ? (
+              <div className="py-12 text-center text-xs text-slate-400">Nenhum link encontrado.</div>
+            ) : (
+              links.map((link) => (
+                <div
+                  key={link.id}
+                  className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-white truncate">{link.title}</span>
+                      <span className="text-[11px] text-cyan-300 font-mono">{link.handle}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+                          link.status === "approved"
+                            ? "bg-emerald-500/20 text-emerald-300"
+                            : link.status === "pending"
+                              ? "bg-amber-500/20 text-amber-300"
+                              : "bg-rose-500/20 text-rose-300"
+                        }`}
+                      >
+                        {link.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 truncate mt-0.5">{link.description}</p>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                    <button
+                      onClick={() => void handleUpdateLink(link.id, { isVerified: !link.isVerified })}
+                      className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold flex items-center gap-1 transition-all ${
+                        link.isVerified
+                          ? "bg-cyan-500/25 text-cyan-200 border border-cyan-400/40"
+                          : "bg-white/5 text-slate-400 hover:text-white"
+                      }`}
+                      title="Alternar verificação"
+                    >
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>Verificado</span>
+                    </button>
+
+                    <button
+                      onClick={() => void handleUpdateLink(link.id, { isFeatured: !link.isFeatured })}
+                      className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold flex items-center gap-1 transition-all ${
+                        link.isFeatured
+                          ? "bg-amber-500/25 text-amber-200 border border-amber-400/40"
+                          : "bg-white/5 text-slate-400 hover:text-white"
+                      }`}
+                      title="Alternar destaque"
+                    >
+                      <Flame className="w-3 h-3" />
+                      <span>Destaque</span>
+                    </button>
+
+                    {link.status !== "approved" && (
+                      <button
+                        onClick={() => void handleUpdateLink(link.id, { status: "approved" })}
+                        className="px-2.5 py-1 rounded-xl bg-emerald-500/30 text-emerald-200 text-[11px] font-bold hover:bg-emerald-500/40"
+                      >
+                        Aprovar
+                      </button>
+                    )}
+                    {link.status !== "rejected" && (
+                      <button
+                        onClick={() => void handleUpdateLink(link.id, { status: "rejected" })}
+                        className="px-2.5 py-1 rounded-xl bg-rose-500/30 text-rose-200 text-[11px] font-bold hover:bg-rose-500/40"
+                      >
+                        Recusar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )
+          ) : reports.length === 0 ? (
+            <div className="py-12 text-center text-xs text-slate-400">Nenhuma denúncia recebida.</div>
+          ) : (
+            reports.map((report) => (
+              <div
+                key={report.id}
+                className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/20 space-y-1"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-amber-200 uppercase tracking-wider">
+                      Motivo: {report.reason}
+                    </span>
+                    <span className={`text-[10px] uppercase ${report.status === "resolved" ? "text-emerald-300" : "text-amber-300"}`}>
+                      {report.status}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">ID do link: #{report.linkId}</span>
+                </div>
+                <p className="text-xs text-slate-300">{report.details || "Sem detalhes adicionais."}</p>
+                <div className="flex justify-end pt-1">
+                  <button
+                    onClick={() => void handleUpdateReport(report.id, report.status === "resolved" ? "pending" : "resolved")}
+                    className="px-2.5 py-1 rounded-xl bg-white/10 text-slate-200 text-[11px] font-semibold hover:bg-white/20"
+                  >
+                    {report.status === "resolved" ? "Reabrir" : "Marcar resolvida"}
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

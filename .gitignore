@@ -1,0 +1,36 @@
+# Dependencies and generated output
+node_modules/
+.next/
+.next-*
+out/
+dist/
+build/
+coverage/
+.turbo/
+.vercel/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Logs and local caches
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+.cache/
+
+# Editor and operating system files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# TypeScript build cache
+*.tsbuildinfo
