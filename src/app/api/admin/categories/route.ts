@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { categories, telegramLinks } from "@/db/schema";
-import { asc, count, eq } from "drizzle-orm";
+import { asc, count, eq, or } from "drizzle-orm";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { asOptionalTrimmedString, asTrimmedString, parseBoundedInteger } from "@/app/api/_lib/validation";
 
@@ -85,10 +85,29 @@ export async function POST(request: NextRequest) {
   if ("error" in parsed) return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
 
   try {
+    const [existing] = await db
+      .select({ id: categories.id, slug: categories.slug })
+      .from(categories)
+      .where(or(eq(categories.id, parsed.value.id), eq(categories.slug, parsed.value.slug)))
+      .limit(1);
+    if (existing) {
+      return NextResponse.json(
+        { success: false, error: `Já existe uma categoria com o ID ou slug “${existing.slug}”. Escolha outro slug.` },
+        { status: 409 }
+      );
+    }
+
     const [created] = await db.insert(categories).values(parsed.value).returning();
     return NextResponse.json({ success: true, data: created, message: "Categoria criada." }, { status: 201 });
   } catch (error) {
     console.error("Error creating category:", error);
-    return NextResponse.json({ success: false, error: "Não foi possível criar a categoria. Verifique se o ID ou slug já existe." }, { status: 409 });
+    const errorCode = error && typeof error === "object" && "code" in error ? String(error.code) : "";
+    if (errorCode === "42P01") {
+      return NextResponse.json({ success: false, error: "A tabela de categorias ainda não existe. Execute pnpm run db:push usando a DATABASE_URL do Neon." }, { status: 503 });
+    }
+    if (errorCode === "23505") {
+      return NextResponse.json({ success: false, error: "O ID ou slug informado já existe. Escolha outro slug." }, { status: 409 });
+    }
+    return NextResponse.json({ success: false, error: "Não foi possível criar a categoria. Verifique os logs do banco." }, { status: 500 });
   }
 }
