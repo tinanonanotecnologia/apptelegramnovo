@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { TelegramLinkItem } from "@/lib/types";
+import { CategoryItem, TelegramLinkItem } from "@/lib/types";
 import { CategoryManagement } from "./CategoryManagement";
+import { ModerationLinkEditModal } from "./ModerationLinkEditModal";
 import {
   X,
   ShieldCheck,
@@ -49,10 +50,13 @@ export function AdminModerationModal({
   const [loginError, setLoginError] = useState("");
   const [activeTab, setActiveTab] = useState<"links" | "reports" | "categories">("links");
   const [links, setLinks] = useState<TelegramLinkItem[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [deletingLinkId, setDeletingLinkId] = useState<number | null>(null);
+  const [editingLink, setEditingLink] = useState<TelegramLinkItem | null>(null);
+  const [savingLink, setSavingLink] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,10 +94,12 @@ export function AdminModerationModal({
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/links?status=${encodeURIComponent(statusFilter)}`, {
-        cache: "no-store",
-      });
+      const [response, categoriesResponse] = await Promise.all([
+        fetch(`/api/admin/links?status=${encodeURIComponent(statusFilter)}`, { cache: "no-store" }),
+        fetch("/api/categories", { cache: "no-store" }),
+      ]);
       const data = await response.json();
+      const categoriesData = await categoriesResponse.json().catch(() => null);
 
       if (response.status === 401) {
         setAuthStatus("login");
@@ -107,6 +113,9 @@ export function AdminModerationModal({
 
       setLinks(data.data.links || []);
       setReports(data.data.reports || []);
+      if (categoriesResponse.ok && categoriesData?.success) {
+        setCategories(categoriesData.data || []);
+      }
     } catch (error) {
       console.error("Error loading moderation data:", error);
       if (showToast) showToast("Não foi possível carregar os dados de moderação.");
@@ -168,7 +177,7 @@ export function AdminModerationModal({
     }
   };
 
-  const handleUpdateLink = async (id: number, updates: Partial<TelegramLinkItem>) => {
+  const handleUpdateLink = async (id: number, updates: Partial<TelegramLinkItem>): Promise<boolean> => {
     try {
       const response = await fetch(`/api/links/${id}`, {
         method: "PATCH",
@@ -181,12 +190,12 @@ export function AdminModerationModal({
       if (response.status === 401) {
         setAuthStatus("login");
         setLoginError("Sua sessão expirou. Entre novamente para continuar.");
-        return;
+        return false;
       }
 
       if (!response.ok || !data.success) {
         if (showToast) showToast(data.error || "Não foi possível atualizar o link.");
-        return;
+        return false;
       }
 
       if (showToast) showToast("Link atualizado com sucesso.");
@@ -202,9 +211,20 @@ export function AdminModerationModal({
         );
       });
       onRefreshData();
+      return true;
     } catch (error) {
       console.error("Error updating moderation link:", error);
       if (showToast) showToast("Falha de conexão ao atualizar o link.");
+      return false;
+    }
+  };
+
+  const handleSaveEditedLink = async (id: number, updates: Partial<TelegramLinkItem>) => {
+    setSavingLink(true);
+    try {
+      return await handleUpdateLink(id, updates);
+    } finally {
+      setSavingLink(false);
     }
   };
 
@@ -568,6 +588,14 @@ export function AdminModerationModal({
                       </button>
                     )}
                     <button
+                      onClick={() => setEditingLink(link)}
+                      className="px-2.5 py-1 rounded-xl bg-indigo-500/25 text-indigo-200 text-[11px] font-bold hover:bg-indigo-500/40 flex items-center gap-1"
+                      title="Editar informações do link"
+                    >
+                      <span aria-hidden="true">✎</span>
+                      Editar
+                    </button>
+                    <button
                       onClick={() => void handleDeleteLink(link)}
                       disabled={deletingLinkId === link.id}
                       className="px-2.5 py-1 rounded-xl bg-rose-950/70 text-rose-200 text-[11px] font-bold hover:bg-rose-900/80 disabled:cursor-wait disabled:opacity-50 flex items-center gap-1"
@@ -617,6 +645,15 @@ export function AdminModerationModal({
           )}
         </div>
       </div>
+      {editingLink && (
+        <ModerationLinkEditModal
+          link={editingLink}
+          categories={categories}
+          submitting={savingLink}
+          onClose={() => setEditingLink(null)}
+          onSave={(updates) => handleSaveEditedLink(editingLink.id, updates)}
+        />
+      )}
     </div>
   );
 }

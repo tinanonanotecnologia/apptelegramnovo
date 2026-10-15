@@ -5,8 +5,12 @@ import { eq, desc, ne, and } from "drizzle-orm";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import {
   LINK_STATUSES,
+  LINK_LANGUAGES,
+  LINK_TYPES,
+  asOptionalTrimmedString,
   asTrimmedString,
   isOneOf,
+  normalizeTelegramLink,
   normalizeTags,
   parseBoundedInteger,
 } from "@/app/api/_lib/validation";
@@ -122,7 +126,36 @@ export async function PATCH(
     if (!body || typeof body !== "object") {
       return NextResponse.json({ success: false, error: "Corpo da requisição inválido." }, { status: 400 });
     }
-    const { status, isFeatured, isVerified, title, description, tags, memberCount } = body;
+
+    const [existing] = await db
+      .select()
+      .from(telegramLinks)
+      .where(eq(telegramLinks.id, linkId));
+
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, error: "Link não encontrado." },
+        { status: 404, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    const {
+      status,
+      isFeatured,
+      isVerified,
+      isNsfw,
+      title,
+      handle,
+      url,
+      description,
+      longDescription,
+      categoryId,
+      type,
+      language,
+      tags,
+      memberCount,
+      submittedBy,
+    } = body;
 
     const updateData: Record<string, any> = {
       updatedAt: new Date(),
@@ -146,6 +179,12 @@ export async function PATCH(
       }
       updateData.isVerified = isVerified;
     }
+    if (isNsfw !== undefined) {
+      if (typeof isNsfw !== "boolean") {
+        return NextResponse.json({ success: false, error: "O campo NSFW deve ser booleano." }, { status: 400 });
+      }
+      updateData.isNsfw = isNsfw;
+    }
     if (title !== undefined) {
       const cleanTitle = asTrimmedString(title, 160);
       if (!cleanTitle) return NextResponse.json({ success: false, error: "Título inválido." }, { status: 400 });
@@ -155,6 +194,59 @@ export async function PATCH(
       const cleanDescription = asTrimmedString(description, 2_000);
       if (!cleanDescription) return NextResponse.json({ success: false, error: "Descrição inválida." }, { status: 400 });
       updateData.description = cleanDescription;
+    }
+    if (longDescription !== undefined) {
+      if (longDescription === null || longDescription === "") {
+        updateData.longDescription = null;
+      } else {
+        const cleanLongDescription = asOptionalTrimmedString(longDescription, 10_000);
+        if (!cleanLongDescription) {
+          return NextResponse.json(
+            { success: false, error: "A descrição longa deve ter no máximo 10.000 caracteres." },
+            { status: 400 }
+          );
+        }
+        updateData.longDescription = cleanLongDescription;
+      }
+    }
+    if (handle !== undefined || url !== undefined) {
+      const normalizedTelegram = normalizeTelegramLink({
+        // If only one side changes, derive the other side from the new value
+        // instead of leaving a stale handle/URL pair behind.
+        handle: handle === undefined && url !== undefined ? undefined : handle ?? existing.handle,
+        url: url === undefined && handle !== undefined ? undefined : url ?? existing.url,
+      });
+      if ("error" in normalizedTelegram) {
+        return NextResponse.json({ success: false, error: normalizedTelegram.error }, { status: 400 });
+      }
+      updateData.handle = normalizedTelegram.handle;
+      updateData.url = normalizedTelegram.url;
+    }
+    if (categoryId !== undefined) {
+      const cleanCategoryId = asTrimmedString(categoryId, 80);
+      if (!cleanCategoryId) {
+        return NextResponse.json({ success: false, error: "Categoria inválida." }, { status: 400 });
+      }
+      const [category] = await db
+        .select({ id: categories.id })
+        .from(categories)
+        .where(eq(categories.id, cleanCategoryId));
+      if (!category) {
+        return NextResponse.json({ success: false, error: "A categoria informada não existe." }, { status: 400 });
+      }
+      updateData.categoryId = cleanCategoryId;
+    }
+    if (type !== undefined) {
+      if (!isOneOf(type, LINK_TYPES)) {
+        return NextResponse.json({ success: false, error: "Tipo de link inválido." }, { status: 400 });
+      }
+      updateData.type = type;
+    }
+    if (language !== undefined) {
+      if (!isOneOf(language, LINK_LANGUAGES)) {
+        return NextResponse.json({ success: false, error: "Idioma inválido." }, { status: 400 });
+      }
+      updateData.language = language;
     }
     if (memberCount !== undefined) {
       const cleanMemberCount = parseBoundedInteger(memberCount, { min: 0, max: 2_000_000_000 });
@@ -168,6 +260,17 @@ export async function PATCH(
       if (!normalizedTags) return NextResponse.json({ success: false, error: "Tags inválidas." }, { status: 400 });
       updateData.tags = normalizedTags;
     }
+    if (submittedBy !== undefined) {
+      if (submittedBy === null || submittedBy === "") {
+        updateData.submittedBy = "Comunidade";
+      } else {
+        const cleanSubmittedBy = asOptionalTrimmedString(submittedBy, 100);
+        if (!cleanSubmittedBy) {
+          return NextResponse.json({ success: false, error: "O nome do remetente é inválido." }, { status: 400 });
+        }
+        updateData.submittedBy = cleanSubmittedBy;
+      }
+    }
 
     if (Object.keys(updateData).length === 1) {
       return NextResponse.json({ success: false, error: "Nenhuma alteração informada." }, { status: 400 });
@@ -179,11 +282,14 @@ export async function PATCH(
       .where(eq(telegramLinks.id, linkId))
       .returning();
 
-    return NextResponse.json({
-      success: true,
-      message: "Link atualizado com sucesso",
-      data: updated,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Link atualizado com sucesso",
+        data: updated,
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   } catch (error) {
     console.error("Error updating link:", error);
     return NextResponse.json(
