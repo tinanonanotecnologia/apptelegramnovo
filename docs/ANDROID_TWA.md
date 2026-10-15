@@ -1,6 +1,6 @@
 # Publicação Android com Trusted Web Activity
 
-O TeleGlass é uma PWA. O caminho de menor manutenção para entregar um aplicativo Android é empacotar a PWA como uma **Trusted Web Activity (TWA)** usando o Bubblewrap. A aplicação precisa estar publicada em HTTPS antes de criar o pacote Android.
+O Telegram Hub é uma PWA. O caminho de menor manutenção para entregar um aplicativo Android é empacotar a PWA como uma **Trusted Web Activity (TWA)** usando o Bubblewrap. A aplicação precisa estar publicada em HTTPS antes de criar o pacote Android.
 
 ## 1. Preparar a PWA
 
@@ -31,7 +31,7 @@ npm install --global @bubblewrap/cli
 bubblewrap init --manifest=https://SEU-DOMINIO/manifest.json
 ```
 
-Quando solicitado, escolha um identificador Android estável, por exemplo `com.suaempresa.teleglass`. O identificador escolhido passa a fazer parte do aplicativo publicado e não deve ser alterado depois. O Bubblewrap cria a pasta Android do TWA e solicita os dados da chave de assinatura.
+Quando solicitado, escolha um identificador Android estável, por exemplo `com.suaempresa.telegramhub`. O identificador escolhido passa a fazer parte do aplicativo publicado e não deve ser alterado depois. O Bubblewrap cria a pasta Android do TWA e solicita os dados da chave de assinatura.
 
 Gere o pacote de produção:
 
@@ -48,7 +48,7 @@ O Android só trata o site como uma TWA confiável quando o domínio publica `as
 PowerShell:
 
 ```powershell
-$env:ANDROID_PACKAGE_NAME = "com.suaempresa.teleglass"
+$env:ANDROID_PACKAGE_NAME = "com.suaempresa.telegramhub"
 $env:ANDROID_SHA256_CERT_FINGERPRINTS = "AA:BB:...:FF"
 npm run android:assetlinks
 ```

@@ -114,7 +114,7 @@ export function LinkDetailModal({
   const handleShare = async () => {
     if (!linkData) return;
     const shareData = {
-      title: `${linkData.title} no TeleGlass`,
+      title: `${linkData.title} no Telegram Hub`,
       text: `Confira este canal do Telegram: ${linkData.title} (${linkData.handle})`,
       url: linkData.url,
     };

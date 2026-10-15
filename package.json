@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "db:push": "drizzle-kit push",
     "generate:icons": "node scripts/generate-icons.js",
+    "generate:brand": "node scripts/generate-brand-assets.js",
     "android:assetlinks": "node scripts/generate-assetlinks.js",
     "android:check": "node scripts/check-android-ready.js"
   },

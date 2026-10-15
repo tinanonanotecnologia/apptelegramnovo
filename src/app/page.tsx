@@ -376,7 +376,7 @@ export default function Home() {
               <Send className="w-4 h-4 -rotate-12" />
             </div>
             <span className="font-extrabold text-base bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent">
-              TeleGlass Progressive Web App
+              Telegram Hub Progressive Web App
             </span>
           </div>
 
@@ -416,7 +416,7 @@ export default function Home() {
           </div>
 
           <p className="text-[11px] text-slate-400 pt-2">
-            © {new Date().getFullYear()} TeleGlass. Todas as marcas e marcas registradas pertencem aos seus respectivos proprietários.
+            © {new Date().getFullYear()} Telegram Hub. Todas as marcas e marcas registradas pertencem aos seus respectivos proprietários.
           </p>
         </div>
       </footer>

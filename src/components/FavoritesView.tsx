@@ -64,7 +64,7 @@ export function FavoritesView({
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(favoritedLinks, null, 2));
     const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `teleglass-favoritos-${new Date().toISOString().split("T")[0]}.json`);
+    downloadAnchor.setAttribute("download", `telegram-hub-favoritos-${new Date().toISOString().split("T")[0]}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();

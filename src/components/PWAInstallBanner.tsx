@@ -81,7 +81,7 @@ export function PWAInstallBanner() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 <h4 className="text-xs font-semibold text-white tracking-wide">
-                  Instale o App TeleGlass
+                  Instale o App Telegram Hub
                 </h4>
                 <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
                   PWA
@@ -136,7 +136,7 @@ export function PWAInstallBanner() {
               </div>
               <h3 className="text-lg font-bold text-white">Instalar no seu iPhone / iPad</h3>
               <p className="text-xs text-slate-300 mt-1">
-                Adicione o TeleGlass à tela de início em apenas 2 passos simples:
+                Adicione o Telegram Hub à tela de início em apenas 2 passos simples:
               </p>
             </div>
 

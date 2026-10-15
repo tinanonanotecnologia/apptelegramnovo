@@ -1,6 +1,6 @@
-# TeleGlass
+# Telegram Hub
 
-Agregador de links do Telegram com interface glassmorphism, busca e filtros, favoritos, avaliações, moderação e suporte a Progressive Web App.
+Hub de descoberta do Telegram com interface Nebula Glass, busca e filtros, favoritos, avaliações, moderação e suporte a Progressive Web App.
 
 ## Recursos
 

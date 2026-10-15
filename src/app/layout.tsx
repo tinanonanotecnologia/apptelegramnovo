@@ -7,9 +7,9 @@ import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 
 export const metadata: Metadata = {
-  title: "TeleGlass | Agregador Glass de Canais, Grupos e Bots do Telegram (PWA)",
+  title: "Telegram Hub | Descubra comunidades do Telegram",
   description:
-    "Descubra os melhores canais, grupos, bots, ferramentas e figurinhas do Telegram no Brasil e no mundo com visual translúcido de vidro.",
+    "Descubra os melhores canais, grupos, bots, ferramentas e figurinhas do Telegram em um hub visual Nebula Glass.",
   manifest: "/manifest.json",
   icons: {
     icon: "/icons/favicon.png",
@@ -18,11 +18,12 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "TeleGlass",
+    title: "Telegram Hub",
   },
-  applicationName: "TeleGlass",
+  applicationName: "Telegram Hub",
   keywords: [
     "telegram",
+    "telegram hub",
     "canais telegram",
     "grupos telegram",
     "bots telegram",
@@ -30,18 +31,18 @@ export const metadata: Metadata = {
     "agregador telegram",
     "pwa",
     "links telegram",
-    "teleglass",
+    "telegram hub",
   ],
   openGraph: {
-    title: "TeleGlass - Agregador de Links do Telegram",
-    description: "Encontre os melhores canais, grupos, bots e figurinhas do Telegram.",
+    title: "Telegram Hub - Comunidades do Telegram",
+    description: "Encontre canais, grupos, bots e figurinhas em um só hub.",
     type: "website",
     locale: "pt_BR",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b1528",
+  themeColor: "#070B16",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,

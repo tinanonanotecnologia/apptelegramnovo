@@ -1,6 +1,6 @@
-# Deploy do TeleGlass com Vercel e Neon
+# Deploy do Telegram Hub com Vercel e Neon
 
-O TeleGlass usa PostgreSQL por meio da variável `DATABASE_URL`. A configuração mais simples para um deploy gratuito é conectar um projeto Neon ao projeto da Vercel pelo Marketplace.
+O Telegram Hub usa PostgreSQL por meio da variável `DATABASE_URL`. A configuração mais simples para um deploy gratuito é conectar um projeto Neon ao projeto da Vercel pelo Marketplace.
 
 ## Criar o projeto
 

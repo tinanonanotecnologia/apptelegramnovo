@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import {
-  Send,
   Sparkles,
   Dices,
   Plus,
@@ -56,10 +56,15 @@ export function HeaderNavbar({
           onClick={() => setActiveTab("explore")}
           className="flex items-center gap-2.5 cursor-pointer group select-none"
         >
-          <div className="relative">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-cyan-500/30 via-blue-500/20 to-indigo-500/40 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shadow-[0_0_20px_rgba(56,189,248,0.3)] group-hover:scale-105 transition-transform">
-              <Send className="w-5 h-5 sm:w-5.5 sm:h-5.5 -rotate-12 translate-x-[-1px] text-cyan-200" />
-            </div>
+          <div className="relative h-10 w-10 sm:h-11 sm:w-11 overflow-hidden rounded-2xl border border-cyan-400/40 shadow-[0_0_20px_rgba(56,189,248,0.3)] group-hover:scale-105 transition-transform">
+            <Image
+              src="/icons/icon-512.png"
+              alt="Telegram Hub"
+              fill
+              sizes="44px"
+              className="object-cover"
+              priority
+            />
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping opacity-75" />
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-cyan-400" />
           </div>
@@ -67,14 +72,14 @@ export function HeaderNavbar({
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-base sm:text-lg tracking-tight bg-gradient-to-r from-white via-cyan-100 to-sky-300 bg-clip-text text-transparent">
-                TeleGlass
+                Telegram Hub
               </span>
               <span className="px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-white/10 text-cyan-300 border border-cyan-400/20 hidden sm:inline-block">
                 PWA
               </span>
             </div>
             <p className="text-[10px] text-slate-300 hidden sm:block -mt-0.5">
-              Agregador Glass de Canais & Bots
+              Descubra. Conecte. Compartilhe.
             </p>
           </div>
         </div>

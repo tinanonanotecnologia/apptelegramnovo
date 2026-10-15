@@ -14,10 +14,10 @@ export function ServiceWorkerRegister() {
       void navigator.serviceWorker
         .register("/sw.js")
         .then((reg) => {
-          console.log("TeleGlass PWA Service Worker registered:", reg.scope);
+          console.log("Telegram Hub PWA Service Worker registered:", reg.scope);
         })
         .catch((err) => {
-          console.warn("TeleGlass SW registration failed:", err);
+          console.warn("Telegram Hub SW registration failed:", err);
         });
     };
 
