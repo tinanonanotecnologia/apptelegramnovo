@@ -56,22 +56,21 @@ export function HeroSection({
               <span>
                 {stats
                   ? `${stats.totalLinks} canais curados • ${formatMemberCount(stats.totalMembers)} membros • ${formatMemberCount(stats.totalClicks)} cliques`
-                  : "Explorador Glass de Comunidades do Telegram"}
+                  : "O seu ponto de encontro no Telegram"}
               </span>
             </div>
 
             {/* Hero Main Heading */}
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-[1.1]">
-              Descubra os Melhores{" "}
+              O ponto de encontro das{" "}
               <span className="bg-gradient-to-r from-cyan-300 via-sky-200 to-indigo-300 bg-clip-text text-transparent underline decoration-cyan-400/30 decoration-wavy">
-                Links do Telegram
+                comunidades do Telegram
               </span>
             </h1>
 
             {/* Subtitle */}
             <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto font-normal">
-              O agregador moderno com visual translúcido de vidro. Encontre canais de tecnologia,
-              promoções relâmpago, bots de produtividade, cursos e comunidades ativas.
+              Encontre comunidades ativas, canais especializados, bots úteis, promoções, cursos e muito mais. Tudo organizado para você descobrir, conectar-se e participar.
             </p>
 
             {/* Interactive Glass Search Bar */}

@@ -9,7 +9,7 @@ import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 export const metadata: Metadata = {
   title: "Telegram Hub | Descubra comunidades do Telegram",
   description:
-    "Descubra os melhores canais, grupos, bots, ferramentas e figurinhas do Telegram em um hub visual Nebula Glass.",
+    "O ponto de encontro das comunidades do Telegram: canais, grupos, bots, cursos, promoções e muito mais em um hub visual Nebula Glass.",
   manifest: "/manifest.json",
   icons: {
     icon: "/icons/favicon.png",
@@ -23,7 +23,6 @@ export const metadata: Metadata = {
   applicationName: "Telegram Hub",
   keywords: [
     "telegram",
-    "telegram hub",
     "canais telegram",
     "grupos telegram",
     "bots telegram",
@@ -35,7 +34,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "Telegram Hub - Comunidades do Telegram",
-    description: "Encontre canais, grupos, bots e figurinhas em um só hub.",
+    description: "O ponto de encontro das comunidades do Telegram.",
     type: "website",
     locale: "pt_BR",
   },

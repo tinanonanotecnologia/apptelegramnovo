@@ -1,7 +1,7 @@
 {
   "name": "Telegram Hub - Comunidades do Telegram",
   "short_name": "Telegram Hub",
-  "description": "Descubra os melhores canais, grupos, bots e figurinhas do Telegram com visual Nebula Glass.",
+  "description": "O ponto de encontro das comunidades do Telegram: canais, grupos, bots, cursos, promoções e muito mais.",
   "id": "/",
   "start_url": "/",
   "display": "standalone",
