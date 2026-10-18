@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeContext";
 import { GlassBackground } from "@/components/GlassBackground";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
+import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
 
 export const metadata: Metadata = {
   title: "Telegram Hub | Descubra comunidades do Telegram",
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <ThemeProvider>
           <GlassBackground />
           <ServiceWorkerRegister />
+          <PresenceHeartbeat />
           {children}
           <PWAInstallBanner />
         </ThemeProvider>

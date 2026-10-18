@@ -66,3 +66,14 @@ export const curatedCollections = pgTable("curated_collections", {
   order: integer("order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+/**
+ * Anonymous browser presence used by the moderation dashboard.
+ * The visitorId is generated client-side and contains no personal data.
+ */
+export const onlinePresence = pgTable("online_presence", {
+  visitorId: text("visitor_id").primaryKey(),
+  lastSeenAt: timestamp("last_seen", { withTimezone: true }).defaultNow().notNull(),
+  lastPath: text("last_path").notNull().default("/"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});

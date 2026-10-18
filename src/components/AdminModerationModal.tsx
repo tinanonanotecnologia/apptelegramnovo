@@ -18,6 +18,8 @@ import {
   LoaderCircle,
   CircleAlert,
   Trash2,
+  Activity,
+  UsersRound,
 } from "lucide-react";
 
 interface AdminModerationModalProps {
@@ -37,6 +39,19 @@ type ReportItem = {
   createdAt: string;
 };
 
+type OnlineVisitor = {
+  lastSeenAt: string;
+  lastPath: string;
+};
+
+function formatPresenceTime(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date(value));
+}
+
 export function AdminModerationModal({
   onClose,
   onRefreshData,
@@ -48,7 +63,7 @@ export function AdminModerationModal({
   const [showPassword, setShowPassword] = useState(false);
   const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [loginError, setLoginError] = useState("");
-  const [activeTab, setActiveTab] = useState<"links" | "reports" | "categories">("links");
+  const [activeTab, setActiveTab] = useState<"links" | "reports" | "categories" | "online">("links");
   const [links, setLinks] = useState<TelegramLinkItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [reports, setReports] = useState<ReportItem[]>([]);
@@ -57,6 +72,10 @@ export function AdminModerationModal({
   const [deletingLinkId, setDeletingLinkId] = useState<number | null>(null);
   const [editingLink, setEditingLink] = useState<TelegramLinkItem | null>(null);
   const [savingLink, setSavingLink] = useState(false);
+  const [onlineCount, setOnlineCount] = useState(0);
+  const [onlineVisitors, setOnlineVisitors] = useState<OnlineVisitor[]>([]);
+  const [onlineLoading, setOnlineLoading] = useState(false);
+  const [onlineError, setOnlineError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -131,6 +150,44 @@ export function AdminModerationModal({
       void loadData();
     }
   }, [authStatus, loadData]);
+
+  const loadPresence = useCallback(async () => {
+    if (authStatus !== "authenticated") return;
+
+    setOnlineLoading(true);
+    setOnlineError("");
+    try {
+      const response = await fetch("/api/admin/presence", { cache: "no-store" });
+      const data = await response.json().catch(() => null);
+
+      if (response.status === 401) {
+        setAuthStatus("login");
+        setLoginError("Sua sessão expirou. Entre novamente para continuar.");
+        return;
+      }
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "Não foi possível carregar o monitoramento online.");
+      }
+
+      setOnlineCount(Number(data.data?.onlineCount || 0));
+      setOnlineVisitors(Array.isArray(data.data?.visitors) ? data.data.visitors : []);
+    } catch (error) {
+      console.error("Error loading online presence:", error);
+      setOnlineError(error instanceof Error ? error.message : "Falha ao carregar o monitoramento online.");
+    } finally {
+      setOnlineLoading(false);
+    }
+  }, [authStatus]);
+
+  useEffect(() => {
+    if (authStatus !== "authenticated" || activeTab !== "online") return;
+
+    // Presence polling synchronizes this tab with the protected admin endpoint.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadPresence();
+    const intervalId = window.setInterval(() => void loadPresence(), 30_000);
+    return () => window.clearInterval(intervalId);
+  }, [activeTab, authStatus, loadPresence]);
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -485,6 +542,17 @@ export function AdminModerationModal({
             >
               Categorias
             </button>
+            <button
+              onClick={() => setActiveTab("online")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeTab === "online"
+                  ? "bg-emerald-500/25 text-emerald-200 border border-emerald-400/30"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Activity className="h-3.5 w-3.5" />
+              Online
+            </button>
           </div>
 
           {activeTab === "links" && (
@@ -516,6 +584,65 @@ export function AdminModerationModal({
             <div className="py-12 text-center text-xs text-slate-400">Carregando dados...</div>
           ) : activeTab === "categories" ? (
             <CategoryManagement showToast={showToast} />
+          ) : activeTab === "online" ? (
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-xl border border-emerald-400/30 bg-emerald-400/15 p-2 text-emerald-200">
+                      <UsersRound className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-emerald-200/80">
+                        Visitantes ativos
+                      </p>
+                      <p className="mt-1 text-3xl font-bold text-white">{onlineCount}</p>
+                      <p className="mt-1 text-xs text-emerald-100/70">Sessões vistas nos últimos 5 minutos.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => void loadPresence()}
+                    className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300 hover:bg-white/10 hover:text-white"
+                    title="Atualizar visitantes online"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${onlineLoading ? "animate-spin" : ""}`} />
+                  </button>
+                </div>
+              </div>
+
+              {onlineError ? (
+                <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-xs text-amber-100">
+                  <div className="flex items-start gap-2">
+                    <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+                    <span>{onlineError}</span>
+                  </div>
+                </div>
+              ) : onlineLoading && onlineVisitors.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400">Carregando visitantes online...</div>
+              ) : onlineVisitors.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400">Nenhum visitante ativo no momento.</div>
+              ) : (
+                <div className="space-y-2">
+                  {onlineVisitors.map((visitor, index) => (
+                    <div
+                      key={`${visitor.lastSeenAt}-${visitor.lastPath}-${index}`}
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3.5 py-3"
+                    >
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.8)]" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-white">Visitante ativo</p>
+                          <p className="truncate text-[11px] text-slate-400">Página: {visitor.lastPath}</p>
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-[11px] text-slate-400">
+                        {formatPresenceTime(visitor.lastSeenAt)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : activeTab === "links" ? (
             links.length === 0 ? (
               <div className="py-12 text-center text-xs text-slate-400">Nenhum link encontrado.</div>
