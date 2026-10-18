@@ -510,8 +510,8 @@ export function AdminModerationModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-2 py-3 border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-3 py-3 border-b border-white/10 shrink-0 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setActiveTab("links")}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
@@ -556,11 +556,11 @@ export function AdminModerationModal({
           </div>
 
           {activeTab === "links" && (
-            <div className="flex items-center gap-2">
+            <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value)}
-                className="p-1.5 rounded-xl glass-input text-xs text-white bg-slate-900"
+                className="min-w-0 flex-1 rounded-xl glass-input bg-slate-900 p-2 text-xs text-white sm:flex-none"
                 aria-label="Filtrar links por status"
               >
                 <option value="all" className="bg-slate-900">Todos os Status</option>
@@ -570,8 +570,9 @@ export function AdminModerationModal({
               </select>
               <button
                 onClick={() => void loadData()}
-                className="p-2 rounded-xl glass-pill text-slate-300 hover:text-white"
+                className="shrink-0 rounded-xl glass-pill p-2 text-slate-300 hover:text-white"
                 title="Atualizar"
+                aria-label="Atualizar links"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
               </button>
