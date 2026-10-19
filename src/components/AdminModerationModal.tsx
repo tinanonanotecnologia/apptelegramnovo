@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { CategoryItem, TelegramLinkItem } from "@/lib/types";
 import { CategoryManagement } from "./CategoryManagement";
 import { ModerationLinkEditModal } from "./ModerationLinkEditModal";
@@ -20,6 +20,7 @@ import {
   Trash2,
   Activity,
   UsersRound,
+  Search,
 } from "lucide-react";
 
 interface AdminModerationModalProps {
@@ -69,6 +70,7 @@ export function AdminModerationModal({
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [linkSearch, setLinkSearch] = useState("");
   const [deletingLinkId, setDeletingLinkId] = useState<number | null>(null);
   const [editingLink, setEditingLink] = useState<TelegramLinkItem | null>(null);
   const [savingLink, setSavingLink] = useState(false);
@@ -76,6 +78,17 @@ export function AdminModerationModal({
   const [onlineVisitors, setOnlineVisitors] = useState<OnlineVisitor[]>([]);
   const [onlineLoading, setOnlineLoading] = useState(false);
   const [onlineError, setOnlineError] = useState("");
+
+  const filteredLinks = useMemo(() => {
+    const query = linkSearch.trim().toLocaleLowerCase("pt-BR");
+    if (!query) return links;
+
+    return links.filter((link) =>
+      [link.title, link.handle, link.description, link.url, link.type, link.status, link.categoryId]
+        .filter(Boolean)
+        .some((value) => value.toLocaleLowerCase("pt-BR").includes(query))
+    );
+  }, [linkSearch, links]);
 
   useEffect(() => {
     let cancelled = false;
@@ -228,6 +241,7 @@ export function AdminModerationModal({
       setLinks([]);
       setReports([]);
       setPassword("");
+      setLinkSearch("");
       setLoginError("");
       setLoading(false);
       if (showToast) showToast("Você saiu do painel de moderação.");
@@ -556,26 +570,39 @@ export function AdminModerationModal({
           </div>
 
           {activeTab === "links" && (
-            <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
-              <select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-                className="min-w-0 flex-1 rounded-xl glass-input bg-slate-900 p-2 text-xs text-white sm:flex-none"
-                aria-label="Filtrar links por status"
-              >
-                <option value="all" className="bg-slate-900">Todos os Status</option>
-                <option value="approved" className="bg-slate-900">Aprovados</option>
-                <option value="pending" className="bg-slate-900">Pendentes</option>
-                <option value="rejected" className="bg-slate-900">Rejeitados</option>
-              </select>
-              <button
-                onClick={() => void loadData()}
-                className="shrink-0 rounded-xl glass-pill p-2 text-slate-300 hover:text-white"
-                title="Atualizar"
-                aria-label="Atualizar links"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-              </button>
+            <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <label className="relative flex min-w-0 flex-1 sm:w-64 sm:flex-none">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="search"
+                  value={linkSearch}
+                  onChange={(event) => setLinkSearch(event.target.value)}
+                  placeholder="Pesquisar links..."
+                  aria-label="Pesquisar links na moderação"
+                  className="glass-input w-full min-w-0 rounded-xl py-2 pl-9 pr-3 text-xs text-white placeholder:text-slate-500"
+                />
+              </label>
+              <div className="flex min-w-0 items-center gap-2">
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
+                  className="min-w-0 flex-1 rounded-xl glass-input bg-slate-900 p-2 text-xs text-white sm:flex-none"
+                  aria-label="Filtrar links por status"
+                >
+                  <option value="all" className="bg-slate-900">Todos os Status</option>
+                  <option value="approved" className="bg-slate-900">Aprovados</option>
+                  <option value="pending" className="bg-slate-900">Pendentes</option>
+                  <option value="rejected" className="bg-slate-900">Rejeitados</option>
+                </select>
+                <button
+                  onClick={() => void loadData()}
+                  className="shrink-0 rounded-xl glass-pill p-2 text-slate-300 hover:text-white"
+                  title="Atualizar"
+                  aria-label="Atualizar links"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -645,10 +672,12 @@ export function AdminModerationModal({
               )}
             </div>
           ) : activeTab === "links" ? (
-            links.length === 0 ? (
-              <div className="py-12 text-center text-xs text-slate-400">Nenhum link encontrado.</div>
+            filteredLinks.length === 0 ? (
+              <div className="py-12 text-center text-xs text-slate-400">
+                {links.length === 0 ? "Nenhum link encontrado." : "Nenhum link corresponde à pesquisa."}
+              </div>
             ) : (
-              links.map((link) => (
+              filteredLinks.map((link) => (
                 <div
                   key={link.id}
                   className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
