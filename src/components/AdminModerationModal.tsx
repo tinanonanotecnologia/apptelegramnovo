@@ -21,6 +21,7 @@ import {
   Activity,
   UsersRound,
   Search,
+  Bell,
 } from "lucide-react";
 
 interface AdminModerationModalProps {
@@ -64,7 +65,7 @@ export function AdminModerationModal({
   const [showPassword, setShowPassword] = useState(false);
   const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [loginError, setLoginError] = useState("");
-  const [activeTab, setActiveTab] = useState<"links" | "reports" | "categories" | "online">("links");
+  const [activeTab, setActiveTab] = useState<"links" | "reports" | "categories" | "online" | "notifications">("links");
   const [links, setLinks] = useState<TelegramLinkItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [reports, setReports] = useState<ReportItem[]>([]);
@@ -78,6 +79,10 @@ export function AdminModerationModal({
   const [onlineVisitors, setOnlineVisitors] = useState<OnlineVisitor[]>([]);
   const [onlineLoading, setOnlineLoading] = useState(false);
   const [onlineError, setOnlineError] = useState("");
+  const [notificationTitle, setNotificationTitle] = useState("Telegram Hub");
+  const [notificationBody, setNotificationBody] = useState("");
+  const [notificationUrl, setNotificationUrl] = useState("/");
+  const [notificationSending, setNotificationSending] = useState(false);
 
   const filteredLinks = useMemo(() => {
     const query = linkSearch.trim().toLocaleLowerCase("pt-BR");
@@ -245,6 +250,33 @@ export function AdminModerationModal({
       setLoginError("");
       setLoading(false);
       if (showToast) showToast("Você saiu do painel de moderação.");
+    }
+  };
+
+  const handleSendNotification = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setNotificationSending(true);
+    try {
+      const response = await fetch("/api/admin/notifications/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ title: notificationTitle, body: notificationBody, url: notificationUrl }),
+      });
+      const data = await response.json().catch(() => null);
+      if (response.status === 401) {
+        setAuthStatus("login");
+        setLoginError("Sua sessão expirou. Entre novamente para continuar.");
+        return;
+      }
+      if (!response.ok || !data?.success) throw new Error(data?.error || "Não foi possível enviar a notificação.");
+      setNotificationBody("");
+      if (showToast) showToast(`Notificação enviada para ${data.sent} dispositivo(s).`);
+    } catch (error) {
+      console.error("Error sending notification:", error);
+      if (showToast) showToast(error instanceof Error ? error.message : "Falha ao enviar a notificação.");
+    } finally {
+      setNotificationSending(false);
     }
   };
 
@@ -567,6 +599,17 @@ export function AdminModerationModal({
               <Activity className="h-3.5 w-3.5" />
               Online
             </button>
+            <button
+              onClick={() => setActiveTab("notifications")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeTab === "notifications"
+                  ? "bg-violet-500/25 text-violet-200 border border-violet-400/30"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Bell className="h-3.5 w-3.5" />
+              Notificações
+            </button>
           </div>
 
           {activeTab === "links" && (
@@ -610,6 +653,34 @@ export function AdminModerationModal({
         <div className="flex-1 overflow-y-auto py-3 space-y-3 pr-1">
           {loading ? (
             <div className="py-12 text-center text-xs text-slate-400">Carregando dados...</div>
+          ) : activeTab === "notifications" ? (
+            <form onSubmit={handleSendNotification} className="mx-auto w-full max-w-xl space-y-4 rounded-2xl border border-violet-400/20 bg-violet-500/10 p-5">
+              <div className="flex items-start gap-3">
+                <div className="rounded-xl border border-violet-400/30 bg-violet-400/15 p-2 text-violet-200">
+                  <Bell className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-white">Enviar notificação</h4>
+                  <p className="mt-1 text-xs text-violet-100/70">A mensagem será enviada aos dispositivos FCM ativos.</p>
+                </div>
+              </div>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-slate-300">Título</span>
+                <input value={notificationTitle} onChange={(event) => setNotificationTitle(event.target.value)} maxLength={100} required className="glass-input w-full rounded-xl px-3 py-3 text-sm" />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-slate-300">Mensagem</span>
+                <textarea value={notificationBody} onChange={(event) => setNotificationBody(event.target.value)} maxLength={500} required rows={4} placeholder="Ex.: Esta é uma notificação de teste." className="glass-input w-full rounded-xl px-3 py-3 text-sm" />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-slate-300">Link ao tocar (opcional)</span>
+                <input value={notificationUrl} onChange={(event) => setNotificationUrl(event.target.value)} maxLength={500} placeholder="/" className="glass-input w-full rounded-xl px-3 py-3 text-sm" />
+              </label>
+              <button type="submit" disabled={notificationSending || !notificationBody.trim()} className="glass-button flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+                {notificationSending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4 text-violet-300" />}
+                {notificationSending ? "Enviando..." : "Enviar notificação"}
+              </button>
+            </form>
           ) : activeTab === "categories" ? (
             <CategoryManagement showToast={showToast} />
           ) : activeTab === "online" ? (
