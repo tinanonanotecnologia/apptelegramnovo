@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { telegramLinks, categories, reviews } from "@/db/schema";
-import { eq, desc, ne, and } from "drizzle-orm";
+import { telegramLinks, categories, reviews, pushTokens, notificationHistory } from "@/db/schema";
+import { eq, desc, ne, and, inArray } from "drizzle-orm";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { getFirebaseMessaging } from "@/lib/firebase-admin";
 import {
   LINK_STATUSES,
   LINK_LANGUAGES,
@@ -281,6 +282,34 @@ export async function PATCH(
       .set(updateData)
       .where(eq(telegramLinks.id, linkId))
       .returning();
+
+    if (updated?.status === "approved" && existing.status !== "approved") {
+      try {
+        const recipients = await db.select({ id: pushTokens.id, token: pushTokens.token }).from(pushTokens).where(eq(pushTokens.enabled, true));
+        let sent = 0;
+        let failed = 0;
+        const invalidIds: number[] = [];
+        const messaging = getFirebaseMessaging();
+        for (let index = 0; index < recipients.length; index += 500) {
+          const batch = recipients.slice(index, index + 500);
+          const result = await messaging.sendEachForMulticast({
+            tokens: batch.map((item) => item.token),
+            notification: { title: "Link aprovado", body: `${updated.title} já está disponível no Telegram Hub.` },
+            data: { url: `/link/${updated.id}` },
+            android: { priority: "high" },
+          });
+          sent += result.successCount;
+          failed += result.failureCount;
+          result.responses.forEach((response, responseIndex) => {
+            if (["messaging/registration-token-not-registered", "messaging/invalid-registration-token"].includes(response.error?.code || "")) invalidIds.push(batch[responseIndex].id);
+          });
+        }
+        if (invalidIds.length) await db.update(pushTokens).set({ enabled: false, updatedAt: new Date() }).where(inArray(pushTokens.id, invalidIds));
+        await db.insert(notificationHistory).values({ title: "Link aprovado", body: `${updated.title} já está disponível no Telegram Hub.`, url: `/link/${updated.id}`, sentCount: sent, failedCount: failed });
+      } catch (notificationError) {
+        console.error("Automatic approval notification failed:", notificationError);
+      }
+    }
 
     return NextResponse.json(
       {
