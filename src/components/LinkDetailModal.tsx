@@ -116,7 +116,7 @@ export function LinkDetailModal({
     const shareData = {
       title: `${linkData.title} no Telegram Hub`,
       text: `Confira este canal do Telegram: ${linkData.title} (${linkData.handle})`,
-      url: linkData.url,
+      url: `${window.location.origin}/link/${linkData.id}`,
     };
 
     if (navigator.share) {
