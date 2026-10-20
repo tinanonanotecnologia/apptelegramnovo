@@ -65,7 +65,7 @@ export function AdminModerationModal({
   const [showPassword, setShowPassword] = useState(false);
   const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [loginError, setLoginError] = useState("");
-  const [activeTab, setActiveTab] = useState<"links" | "reports" | "categories" | "online" | "notifications" | "notificationHistory">("links");
+  const [activeTab, setActiveTab] = useState<"links" | "reports" | "categories" | "online" | "notifications" | "notificationHistory" | "analytics">("links");
   const [links, setLinks] = useState<TelegramLinkItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [reports, setReports] = useState<ReportItem[]>([]);
@@ -85,6 +85,7 @@ export function AdminModerationModal({
   const [notificationSending, setNotificationSending] = useState(false);
   const [notificationHistory, setNotificationHistory] = useState<Array<{ id: number; title: string; body: string; url: string; sentCount: number; failedCount: number; createdAt: string }>>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [analytics, setAnalytics] = useState<any>(null);
 
   const filteredLinks = useMemo(() => {
     const query = linkSearch.trim().toLocaleLowerCase("pt-BR");
@@ -300,6 +301,11 @@ export function AdminModerationModal({
   useEffect(() => {
     if (authStatus === "authenticated" && activeTab === "notificationHistory") void loadNotificationHistory();
   }, [activeTab, authStatus, loadNotificationHistory]);
+
+  useEffect(() => {
+    if (authStatus !== "authenticated" || activeTab !== "analytics") return;
+    fetch("/api/admin/analytics", { cache: "no-store" }).then((response) => response.json()).then((data) => { if (data.success) setAnalytics(data.data); }).catch(() => showToast?.("Não foi possível carregar os analytics."));
+  }, [activeTab, authStatus, showToast]);
 
   const handleUpdateLink = async (id: number, updates: Partial<TelegramLinkItem>): Promise<boolean> => {
     try {
@@ -639,6 +645,7 @@ export function AdminModerationModal({
             >
               Histórico
             </button>
+            <button onClick={() => setActiveTab("analytics")} className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${activeTab === "analytics" ? "bg-cyan-500/25 text-cyan-200 border border-cyan-400/30" : "text-slate-400 hover:text-white"}`}>Analytics</button>
           </div>
 
           {activeTab === "links" && (
@@ -710,6 +717,14 @@ export function AdminModerationModal({
                 {notificationSending ? "Enviando..." : "Enviar notificação"}
               </button>
             </form>
+          ) : activeTab === "analytics" ? (
+            <div className="space-y-4">
+              <h4 className="text-lg font-bold text-white">Analytics do Telegram Hub</h4>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[["Links", analytics?.totals?.links], ["Cliques", analytics?.totals?.clicks], ["Curtidas", analytics?.totals?.likes], ["Membros", analytics?.totals?.members]].map(([label, value]) => <div key={String(label)} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"><p className="text-xs text-slate-400">{label}</p><p className="mt-1 text-2xl font-bold text-white">{Number(value || 0).toLocaleString("pt-BR")}</p></div>)}
+              </div>
+              <div className="space-y-2"><p className="text-sm font-semibold text-slate-200">Links mais acessados</p>{(analytics?.topLinks || []).map((item: any, index: number) => <div key={item.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs"><span className="truncate text-white">{index + 1}. {item.title}</span><span className="shrink-0 text-cyan-300">{item.clicks} cliques</span></div>)}</div>
+            </div>
           ) : activeTab === "notificationHistory" ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
