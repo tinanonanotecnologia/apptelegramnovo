@@ -33,7 +33,7 @@ export default function PublicLinkPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#070b16] via-[#0d162d] to-[#060914] px-4 py-6 text-white">
       <div className="mx-auto max-w-2xl">
-        <button onClick={() => history.back()} className="mb-6 inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white"><ArrowLeft className="h-4 w-4" /> Voltar</button>
+        <a href="/" className="mb-6 inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white"><ArrowLeft className="h-4 w-4" /> Voltar</a>
         <article className="rounded-3xl border border-white/15 bg-white/[0.06] p-6 shadow-2xl backdrop-blur-2xl sm:p-8">
           <div className="flex flex-wrap items-center gap-2 text-xs text-cyan-200">
             <span className="rounded-full bg-cyan-400/15 px-3 py-1">{link.type}</span>
