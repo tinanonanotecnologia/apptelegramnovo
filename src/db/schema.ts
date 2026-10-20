@@ -77,3 +77,15 @@ export const onlinePresence = pgTable("online_presence", {
   lastPath: text("last_path").notNull().default("/"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+/** Device tokens used for Firebase Cloud Messaging notifications. */
+export const pushTokens = pgTable("push_tokens", {
+  id: serial("id").primaryKey(),
+  token: text("token").notNull().unique(),
+  installationId: text("installation_id").notNull(),
+  platform: text("platform").notNull().default("android"),
+  enabled: boolean("enabled").notNull().default(true),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
