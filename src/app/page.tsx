@@ -32,6 +32,7 @@ import {
   Heart,
   Bot,
   ExternalLink,
+  ShieldCheck,
 } from "lucide-react";
 import { formatMemberCount } from "@/lib/utils";
 
@@ -409,9 +410,11 @@ export default function Home() {
             <span>•</span>
             <button
               onClick={() => setIsAdminOpen(true)}
-              className="hover:text-white cursor-pointer"
+              className="inline-flex items-center justify-center rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-emerald-300 cursor-pointer"
+              aria-label="Abrir painel administrativo"
+              title="Painel administrativo"
             >
-              Moderação
+              <ShieldCheck className="h-4 w-4" />
             </button>
           </div>
 
