@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getFirebaseMessaging } from "@/lib/firebase-admin";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { db } from "@/db";
-import { pushTokens } from "@/db/schema";
+import { notificationHistory, pushTokens } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 
 const MAX_BATCH_SIZE = 500;
@@ -61,6 +61,8 @@ export async function POST(request: NextRequest) {
     if (invalidTokenIds.length > 0) {
       await db.update(pushTokens).set({ enabled: false, updatedAt: new Date() }).where(inArray(pushTokens.id, invalidTokenIds));
     }
+
+    await db.insert(notificationHistory).values({ title, body: messageBody, url, sentCount: sent, failedCount: failed });
 
     return NextResponse.json({ success: true, sent, failed, disabled: invalidTokenIds.length });
   } catch (error) {
