@@ -12,6 +12,7 @@ import {
   Search,
   Flame,
   Check,
+  Bell,
 } from "lucide-react";
 import { useGlassTheme, GlassTheme } from "./ThemeContext";
 import { PlatformStats } from "@/lib/types";
@@ -46,6 +47,23 @@ export function HeaderNavbar({
 }: HeaderNavbarProps) {
   const { theme, setTheme, favorites } = useGlassTheme();
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [showNotificationMenu, setShowNotificationMenu] = useState(false);
+  const [notificationPrefs, setNotificationPrefs] = useState({ approved: true, highlights: true, announcements: true });
+
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem("telegram_hub_notification_preferences");
+      if (saved) setNotificationPrefs((current) => ({ ...current, ...JSON.parse(saved) }));
+    } catch {}
+  }, []);
+
+  const toggleNotificationPreference = (key: keyof typeof notificationPrefs) => {
+    setNotificationPrefs((current) => {
+      const next = { ...current, [key]: !current[key] };
+      localStorage.setItem("telegram_hub_notification_preferences", JSON.stringify(next));
+      return next;
+    });
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full px-3 sm:px-6 pt-3 pb-2 transition-all">
@@ -145,6 +163,36 @@ export function HeaderNavbar({
             <Dices className="w-4 h-4 animate-spin-slow text-cyan-300" />
             <span className="hidden lg:inline">Roleta</span>
           </button>
+
+          {/* Theme Selector Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowNotificationMenu((visible) => !visible)}
+              className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl glass-pill text-slate-300 hover:text-white transition-all cursor-pointer"
+              title="Preferências de notificações"
+              aria-label="Preferências de notificações"
+            >
+              <Bell className="w-4 h-4 text-violet-300" />
+            </button>
+            {showNotificationMenu && (
+              <div className="absolute right-0 mt-2 w-64 rounded-2xl glass-modal p-3 shadow-2xl z-50 border border-white/20">
+                <div className="px-1 py-1 text-[11px] font-semibold text-slate-300 uppercase tracking-wider">Notificações</div>
+                <p className="px-1 pb-2 text-[11px] text-slate-500">Escolha os avisos que deseja receber.</p>
+                {([
+                  ["approved", "Links aprovados"],
+                  ["highlights", "Destaques"],
+                  ["announcements", "Comunicados"] as const,
+                ] as const).map(([key, label]) => (
+                  <button key={key} onClick={() => toggleNotificationPreference(key)} className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-xs text-slate-200 hover:bg-white/5">
+                    {label}
+                    <span className={`h-4 w-7 rounded-full p-0.5 transition-colors ${notificationPrefs[key] ? "bg-violet-500" : "bg-slate-700"}`}>
+                      <span className={`block h-3 w-3 rounded-full bg-white transition-transform ${notificationPrefs[key] ? "translate-x-3" : "translate-x-0"}`} />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Theme Selector Dropdown */}
           <div className="relative">
