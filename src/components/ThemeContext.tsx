@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-export type GlassTheme = "nebula" | "frost" | "emerald" | "sunset" | "obsidian";
+export type GlassTheme = "nebula" | "emerald" | "sunset" | "obsidian";
 
 interface ThemeContextType {
   theme: GlassTheme;
@@ -22,7 +22,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Load saved theme
     try {
       const savedTheme = localStorage.getItem("teleglass_theme") as GlassTheme;
-      if (savedTheme && ["nebula", "frost", "emerald", "sunset", "obsidian"].includes(savedTheme)) {
+      if (savedTheme && ["nebula", "emerald", "sunset", "obsidian"].includes(savedTheme)) {
         // Hydrate the persisted theme once browser storage is available.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setThemeState(savedTheme);

@@ -8,14 +8,6 @@ export function GlassBackground() {
 
   const getThemeGradients = () => {
     switch (theme) {
-      case "frost":
-        return {
-          bg: "bg-gradient-to-br from-slate-100 via-sky-50 to-indigo-100 text-slate-800",
-          orb1: "bg-sky-400/40",
-          orb2: "bg-indigo-300/40",
-          orb3: "bg-cyan-300/40",
-          orb4: "bg-blue-300/30",
-        };
       case "emerald":
         return {
           bg: "bg-gradient-to-br from-[#021f18] via-[#042f24] to-[#01140f] text-emerald-50",

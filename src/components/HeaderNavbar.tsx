@@ -29,7 +29,6 @@ interface HeaderNavbarProps {
 
 const THEME_OPTIONS: { id: GlassTheme; label: string; dotColor: string }[] = [
   { id: "nebula", label: "Nebula Glass", dotColor: "bg-cyan-400" },
-  { id: "frost", label: "Frost Crystal", dotColor: "bg-sky-500" },
   { id: "emerald", label: "Emerald Glass", dotColor: "bg-emerald-400" },
   { id: "sunset", label: "Sunset Prism", dotColor: "bg-orange-400" },
   { id: "obsidian", label: "Obsidian Dark", dotColor: "bg-zinc-400" },

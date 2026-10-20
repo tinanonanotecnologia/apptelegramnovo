@@ -14,19 +14,6 @@
     --accent-secondary: #818cf8;
   }
 
-  [data-glass-theme="frost"] {
-    --glass-bg: rgba(240, 249, 255, 0.75);
-    --glass-border: rgba(255, 255, 255, 0.6);
-    --glass-border-hover: rgba(56, 189, 248, 0.5);
-    --glass-highlight: rgba(255, 255, 255, 0.4);
-    --glass-card-bg: rgba(255, 255, 255, 0.65);
-    --glass-card-border: rgba(255, 255, 255, 0.4);
-    --glass-shadow: 0 8px 32px 0 rgba(148, 163, 184, 0.25);
-    --accent-glow: rgba(14, 165, 233, 0.3);
-    --accent-primary: #0284c7;
-    --accent-secondary: #6366f1;
-  }
-
   [data-glass-theme="emerald"] {
     --glass-bg: rgba(6, 44, 34, 0.7);
     --glass-border: rgba(52, 211, 153, 0.2);
