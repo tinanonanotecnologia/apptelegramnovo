@@ -65,7 +65,7 @@ export function AdminModerationModal({
   const [showPassword, setShowPassword] = useState(false);
   const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [loginError, setLoginError] = useState("");
-  const [activeTab, setActiveTab] = useState<"links" | "reports" | "categories" | "online" | "notifications">("links");
+  const [activeTab, setActiveTab] = useState<"links" | "reports" | "categories" | "online" | "notifications" | "notificationHistory">("links");
   const [links, setLinks] = useState<TelegramLinkItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [reports, setReports] = useState<ReportItem[]>([]);
@@ -83,6 +83,8 @@ export function AdminModerationModal({
   const [notificationBody, setNotificationBody] = useState("");
   const [notificationUrl, setNotificationUrl] = useState("/");
   const [notificationSending, setNotificationSending] = useState(false);
+  const [notificationHistory, setNotificationHistory] = useState<Array<{ id: number; title: string; body: string; url: string; sentCount: number; failedCount: number; createdAt: string }>>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const filteredLinks = useMemo(() => {
     const query = linkSearch.trim().toLocaleLowerCase("pt-BR");
@@ -279,6 +281,25 @@ export function AdminModerationModal({
       setNotificationSending(false);
     }
   };
+
+  const loadNotificationHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const response = await fetch("/api/admin/notifications/history", { cache: "no-store" });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) throw new Error(data?.error || "Não foi possível carregar o histórico.");
+      setNotificationHistory(Array.isArray(data.data) ? data.data : []);
+    } catch (error) {
+      console.error("Error loading notification history:", error);
+      if (showToast) showToast("Não foi possível carregar o histórico de notificações.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    if (authStatus === "authenticated" && activeTab === "notificationHistory") void loadNotificationHistory();
+  }, [activeTab, authStatus, loadNotificationHistory]);
 
   const handleUpdateLink = async (id: number, updates: Partial<TelegramLinkItem>): Promise<boolean> => {
     try {
@@ -610,6 +631,14 @@ export function AdminModerationModal({
               <Bell className="h-3.5 w-3.5" />
               Notificações
             </button>
+            <button
+              onClick={() => setActiveTab("notificationHistory")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeTab === "notificationHistory" ? "bg-slate-500/25 text-slate-100 border border-slate-400/30" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Histórico
+            </button>
           </div>
 
           {activeTab === "links" && (
@@ -681,6 +710,38 @@ export function AdminModerationModal({
                 {notificationSending ? "Enviando..." : "Enviar notificação"}
               </button>
             </form>
+          ) : activeTab === "notificationHistory" ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h4 className="font-semibold text-white">Histórico de notificações</h4>
+                  <p className="text-xs text-slate-400">Mensagens enviadas pelo painel administrativo.</p>
+                </div>
+                <button onClick={() => void loadNotificationHistory()} className="rounded-xl glass-pill p-2 text-slate-300 hover:text-white" aria-label="Atualizar histórico">
+                  <RefreshCw className={`h-3.5 w-3.5 ${historyLoading ? "animate-spin" : ""}`} />
+                </button>
+              </div>
+              {historyLoading && notificationHistory.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400">Carregando histórico...</div>
+              ) : notificationHistory.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400">Nenhuma notificação enviada ainda.</div>
+              ) : notificationHistory.map((item) => (
+                <div key={item.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-white">{item.title}</p>
+                      <p className="mt-1 text-xs text-slate-300">{item.body}</p>
+                    </div>
+                    <span className="shrink-0 text-[11px] text-slate-500">{new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.createdAt))}</span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                    <span className="rounded-lg bg-emerald-500/15 px-2 py-1 text-emerald-200">Enviadas: {item.sentCount}</span>
+                    <span className="rounded-lg bg-rose-500/15 px-2 py-1 text-rose-200">Falhas: {item.failedCount}</span>
+                    <span className="rounded-lg bg-white/5 px-2 py-1 text-slate-400">Link: {item.url}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : activeTab === "categories" ? (
             <CategoryManagement showToast={showToast} />
           ) : activeTab === "online" ? (
