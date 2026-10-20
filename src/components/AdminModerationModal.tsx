@@ -83,6 +83,8 @@ export function AdminModerationModal({
   const [notificationBody, setNotificationBody] = useState("");
   const [notificationUrl, setNotificationUrl] = useState("/");
   const [notificationSending, setNotificationSending] = useState(false);
+  const [approvalNotificationsEnabled, setApprovalNotificationsEnabled] = useState(true);
+  const [approvalSettingSaving, setApprovalSettingSaving] = useState(false);
   const [notificationHistory, setNotificationHistory] = useState<Array<{ id: number; title: string; body: string; url: string; sentCount: number; failedCount: number; createdAt: string }>>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -297,6 +299,23 @@ export function AdminModerationModal({
       setHistoryLoading(false);
     }
   }, [showToast]);
+
+  useEffect(() => {
+    if (authStatus !== "authenticated" || activeTab !== "notifications") return;
+    fetch("/api/admin/notifications/approval-setting", { cache: "no-store" }).then((response) => response.json()).then((data) => { if (data.success) setApprovalNotificationsEnabled(data.enabled); }).catch(() => {});
+  }, [activeTab, authStatus]);
+
+  const toggleApprovalNotifications = async () => {
+    setApprovalSettingSaving(true);
+    const enabled = !approvalNotificationsEnabled;
+    try {
+      const response = await fetch("/api/admin/notifications/approval-setting", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled }) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || "Falha ao salvar configuração.");
+      setApprovalNotificationsEnabled(enabled);
+      showToast?.(enabled ? "Avisos de aprovação ativados." : "Avisos de aprovação desativados.");
+    } catch (error) { showToast?.(error instanceof Error ? error.message : "Falha ao salvar configuração."); } finally { setApprovalSettingSaving(false); }
+  };
 
   useEffect(() => {
     if (authStatus === "authenticated" && activeTab === "notificationHistory") void loadNotificationHistory();
@@ -700,6 +719,10 @@ export function AdminModerationModal({
                   <p className="mt-1 text-xs text-violet-100/70">A mensagem será enviada aos dispositivos FCM ativos.</p>
                 </div>
               </div>
+              <button type="button" onClick={() => void toggleApprovalNotifications()} disabled={approvalSettingSaving} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left disabled:opacity-60">
+                <span><span className="block text-sm font-semibold text-white">Notificar links aprovados</span><span className="mt-1 block text-xs text-slate-400">Enviar aviso automático quando um link for aprovado.</span></span>
+                <span className={`h-6 w-11 rounded-full p-1 transition-colors ${approvalNotificationsEnabled ? "bg-emerald-500" : "bg-slate-700"}`}><span className={`block h-4 w-4 rounded-full bg-white transition-transform ${approvalNotificationsEnabled ? "translate-x-5" : "translate-x-0"}`} /></span>
+              </button>
               <label className="block">
                 <span className="mb-1.5 block text-xs font-medium text-slate-300">Título</span>
                 <input value={notificationTitle} onChange={(event) => setNotificationTitle(event.target.value)} maxLength={100} required className="glass-input w-full rounded-xl px-3 py-3 text-sm" />

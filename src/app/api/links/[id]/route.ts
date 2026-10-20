@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { telegramLinks, categories, reviews, pushTokens, notificationHistory } from "@/db/schema";
+import { telegramLinks, categories, reviews, pushTokens, notificationHistory, appSettings } from "@/db/schema";
 import { eq, desc, ne, and, inArray } from "drizzle-orm";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { getFirebaseMessaging } from "@/lib/firebase-admin";
@@ -283,7 +283,8 @@ export async function PATCH(
       .where(eq(telegramLinks.id, linkId))
       .returning();
 
-    if (updated?.status === "approved" && existing.status !== "approved") {
+    const [approvalSetting] = await db.select().from(appSettings).where(eq(appSettings.key, "approval_notifications_enabled"));
+    if (updated?.status === "approved" && existing.status !== "approved" && approvalSetting?.value !== "false") {
       try {
         const recipients = await db.select({ id: pushTokens.id, token: pushTokens.token }).from(pushTokens).where(eq(pushTokens.enabled, true));
         let sent = 0;
