@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeContext";
 import { GlassBackground } from "@/components/GlassBackground";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
+import { ApkInstallBanner } from "@/components/ApkInstallBanner";
 import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
 
 export const metadata: Metadata = {
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <PresenceHeartbeat />
           {children}
           <PWAInstallBanner />
+          <ApkInstallBanner />
         </ThemeProvider>
       </body>
     </html>
