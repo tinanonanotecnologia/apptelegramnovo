@@ -382,8 +382,7 @@ export default function Home() {
           </div>
 
           <p className="text-xs text-slate-400 max-w-lg mx-auto">
-            O diretório mais completo de canais, robôs, grupos e stickers do Telegram com
-            estética translúcida de vidro líquido. Feito para a comunidade.
+            Descubra canais, grupos, bots e stickers do Telegram
           </p>
 
           <div className="flex items-center justify-center gap-4 text-xs text-slate-400 pt-2 flex-wrap">
