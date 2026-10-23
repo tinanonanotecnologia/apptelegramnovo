@@ -17,6 +17,7 @@ import { SubmitLinkModal } from "@/components/SubmitLinkModal";
 import { RandomRouletteModal } from "@/components/RandomRouletteModal";
 import { FavoritesView } from "@/components/FavoritesView";
 import { AdminModerationModal } from "@/components/AdminModerationModal";
+import { GlobalChat } from "@/components/GlobalChat";
 import { GlassDock } from "@/components/GlassDock";
 import { Toast } from "@/components/Toast";
 import {
@@ -61,6 +62,7 @@ export default function Home() {
   const [isSubmitOpen, setIsSubmitOpen] = useState<boolean>(false);
   const [isRouletteOpen, setIsRouletteOpen] = useState<boolean>(false);
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = useCallback((msg: string) => {
@@ -220,6 +222,9 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col pb-24 md:pb-12">
       <Toast message={toastMessage} />
+      <button onClick={() => setIsChatOpen(true)} className="fixed bottom-24 right-4 z-40 rounded-full border border-cyan-300/30 bg-gradient-to-r from-cyan-400 to-violet-500 p-4 text-slate-950 shadow-lg shadow-cyan-500/25" title="Abrir chat global" aria-label="Abrir chat global">
+        <Send className="h-5 w-5" />
+      </button>
 
       {/* Glass Top Header */}
       <HeaderNavbar
@@ -475,6 +480,7 @@ export default function Home() {
           showToast={showToast}
         />
       )}
+      {isChatOpen && <GlobalChat onClose={() => setIsChatOpen(false)} />}
     </div>
   );
 }
