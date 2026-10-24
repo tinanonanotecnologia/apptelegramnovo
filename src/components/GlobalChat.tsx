@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { onAuthStateChanged, signInWithPopup, signOut, User } from "firebase/auth";
+import { getRedirectResult, onAuthStateChanged, signInWithRedirect, signOut, User } from "firebase/auth";
 import { ArrowLeft, LogIn, LogOut, Send, ShieldCheck, X } from "lucide-react";
 import { getFirebaseAuth, getGoogleProvider, isFirebaseClientConfigured } from "@/lib/firebase-client";
 
@@ -16,11 +16,13 @@ export function GlobalChat({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     if (!isFirebaseClientConfigured()) return;
-    return onAuthStateChanged(getFirebaseAuth(), setUser);
+    const auth = getFirebaseAuth();
+    void getRedirectResult(auth).catch(() => setError("Não foi possível concluir o login Google."));
+    return onAuthStateChanged(auth, setUser);
   }, []);
   useEffect(() => { fetch("/api/chat/messages", { cache: "no-store" }).then(r => r.json()).then(d => setMessages(d.data || [])).catch(() => setError("Não foi possível carregar o chat.")); }, []);
 
-  const login = async () => { try { await signInWithPopup(getFirebaseAuth(), getGoogleProvider()); } catch { setError("Não foi possível concluir o login Google."); } };
+  const login = async () => { try { await signInWithRedirect(getFirebaseAuth(), getGoogleProvider()); } catch { setError("Não foi possível iniciar o login Google."); } };
   const send = async (event: FormEvent) => {
     event.preventDefault(); if (!user || !text.trim() || loading) return;
     setLoading(true); setError("");
