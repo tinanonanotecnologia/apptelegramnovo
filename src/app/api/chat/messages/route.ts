@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 async function authenticatedUser(request: NextRequest) {
   const header = request.headers.get("authorization") || "";
   if (!header.startsWith("Bearer ")) return null;
-  try { return await getFirebaseAuth().verifyIdToken(header.slice(7)); } catch { return null; }
+  try { return await (await getFirebaseAuth()).verifyIdToken(header.slice(7)); } catch { return null; }
 }
 
 export async function GET(request: NextRequest) {

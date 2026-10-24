@@ -1,5 +1,4 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
 import { getMessaging } from "firebase-admin/messaging";
 
 function getFirebaseApp() {
@@ -23,6 +22,9 @@ export function getFirebaseMessaging() {
   return getMessaging(getFirebaseApp());
 }
 
-export function getFirebaseAuth() {
+export async function getFirebaseAuth() {
+  // firebase-admin/auth pulls jose through a CommonJS dependency. Loading it
+  // dynamically keeps Next/Vercel from evaluating that ESM module at route load.
+  const { getAuth } = await import("firebase-admin/auth");
   return getAuth(getFirebaseApp());
 }
