@@ -17,12 +17,22 @@ export function GlobalChat({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (!isFirebaseClientConfigured()) return;
     const auth = getFirebaseAuth();
-    void getRedirectResult(auth).catch(() => setError("Não foi possível concluir o login Google."));
+    void getRedirectResult(auth).catch((error: unknown) => {
+      const code = typeof error === "object" && error && "code" in error ? String((error as { code: unknown }).code) : "";
+      setError(`Não foi possível concluir o login Google${code ? ` (${code})` : ""}.`);
+    });
     return onAuthStateChanged(auth, setUser);
   }, []);
   useEffect(() => { fetch("/api/chat/messages", { cache: "no-store" }).then(r => r.json()).then(d => setMessages(d.data || [])).catch(() => setError("Não foi possível carregar o chat.")); }, []);
 
-  const login = async () => { try { await signInWithRedirect(getFirebaseAuth(), getGoogleProvider()); } catch { setError("Não foi possível iniciar o login Google."); } };
+  const login = async () => {
+    try {
+      await signInWithRedirect(getFirebaseAuth(), getGoogleProvider());
+    } catch (error: unknown) {
+      const code = typeof error === "object" && error && "code" in error ? String((error as { code: unknown }).code) : "";
+      setError(`Não foi possível iniciar o login Google${code ? ` (${code})` : ""}.`);
+    }
+  };
   const send = async (event: FormEvent) => {
     event.preventDefault(); if (!user || !text.trim() || loading) return;
     setLoading(true); setError("");
