@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import {
   CategoryItem,
   TelegramLinkItem,
@@ -415,6 +416,8 @@ export default function Home() {
             >
               <ShieldCheck className="h-4 w-4" />
             </button>
+            <span>•</span>
+            <Link href="/politica-de-privacidade" className="hover:text-white">Política de Privacidade</Link>
           </div>
 
           <p className="text-[11px] text-slate-400 pt-2">
