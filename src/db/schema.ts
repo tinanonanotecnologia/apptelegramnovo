@@ -106,12 +106,3 @@ export const appSettings = pgTable("app_settings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const chatMessages = pgTable("chat_messages", {
-  id: serial("id").primaryKey(),
-  uid: text("uid").notNull(),
-  email: text("email").notNull(),
-  displayName: text("display_name").notNull(),
-  photoUrl: text("photo_url"),
-  text: text("text").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
