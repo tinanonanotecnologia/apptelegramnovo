@@ -7,7 +7,8 @@
       "namespace": "android_app",
       "package_name": "com.tinano.telegramhub",
       "sha256_cert_fingerprints": [
-        "6C:14:48:A5:2E:DF:9E:79:68:8C:94:10:37:3C:92:7D:E5:3E:9C:D6:21:89:07:E1:7B:55:90:BD:62:32:DE:25"
+        "6C:14:48:A5:2E:DF:9E:79:68:8C:94:10:37:3C:92:7D:E5:3E:9C:D6:21:89:07:E1:7B:55:90:BD:62:32:DE:25",
+        "3E:97:93:2B:AE:4B:DA:40:A7:7E:2A:9C:37:0F:50:F5:83:27:C4:02:C6:2C:B5:A1:0E:2B:4D:F2:53:09:66:BC"
       ]
     }
   }
